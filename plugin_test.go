@@ -1,25 +1,61 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 )
 
+const (
+	fixedDir  = "/tmp/plugin_git_testdir_fixed"
+	fixedFile = "testfile.txt"
+)
+
+// postCommands is a map of test commands that can be used for testing post commands in git plugin.
+var postCommands = map[string]string{
+	"remove_fixed_dir":               fmt.Sprintf("rm -rf %s", fixedDir),
+	"create_fixed_dir":               fmt.Sprintf("mkdir -p %s", fixedDir),
+	"create_empty_file_in_fixed_dir": fmt.Sprintf("touch %s", filepath.Join(fixedDir, fixedFile)),
+}
+
+// postCommandsByNames returns list of post commands matching specified names.
+func postCommandsByNames(names []string) []string {
+	var cmds []string
+	for _, name := range names {
+		_, ok := postCommands[name]
+		if ok {
+			cmds = append(cmds, postCommands[name])
+		}
+	}
+
+	return cmds
+}
+
+// buildCreateTestFilePostCommands returns post commands to create a test file.
+func buildCreateTestFilePostCommands() []string {
+	return postCommandsByNames([]string{
+		"remove_fixed_dir",
+		"create_fixed_dir",
+		"create_empty_file_in_fixed_dir",
+	})
+}
+
 // commits is a list of commits of different types (push, pull request, tag)
 // to help us verify that this clone plugin can handle multiple commit types.
 var commits = []struct {
-	path      string
-	clone     string
-	event     string
-	branch    string
-	commit    string
-	ref       string
-	file      string
-	data      string
-	dataSize  int64
-	recursive bool
-	lfs       bool
+	path         string
+	clone        string
+	event        string
+	branch       string
+	commit       string
+	ref          string
+	file         string
+	data         string
+	postCommands []string
+	dataSize     int64
+	recursive    bool
+	lfs          bool
 }{
 	// first commit
 	{
@@ -162,7 +198,66 @@ func TestClone(t *testing.T) {
 				t.Errorf("Expected %s size to be [%d]. Got [%d].", c.file, c.dataSize, size)
 			}
 		}
+	}
+}
 
+// TestCloneWithPostCommands tests the ability to clone and execute post commands
+// after clone operation.
+func TestCloneWithPostCommands(t *testing.T) {
+	dir := setup()
+	defer teardown(dir)
+
+	// tags, also includes post commands.
+	c := struct {
+		path         string
+		clone        string
+		event        string
+		branch       string
+		commit       string
+		ref          string
+		postCommands []string
+	}{
+		path:         "github/mime-types",
+		clone:        "https://github.com/github/mime-types.git",
+		event:        "tag",
+		branch:       "master",
+		commit:       "553c2077f0edc3d5dc5d17262f6aa498e69d6f8e",
+		ref:          "refs/tags/v1.17",
+		postCommands: buildCreateTestFilePostCommands(),
+	}
+
+	plugin := Plugin{
+		Repo: Repo{
+			Clone: c.clone,
+		},
+		Build: Build{
+			Path:   filepath.Join(dir, c.path),
+			Commit: c.commit,
+			Event:  c.event,
+			Ref:    c.ref,
+		},
+		Config: Config{
+			PostCommands: c.postCommands,
+		},
+	}
+
+	if err := plugin.Exec(); err != nil {
+		t.Errorf("Expected successful clone. Got error. %s.", err)
+	}
+
+	// verify post commands executed successfully.
+	exists, err := pathExists(filepath.Join(fixedDir, fixedFile))
+	if err != nil {
+		t.Errorf("Expected test file to be created successfully with post commands. Got error. %s.", err)
+	}
+
+	if !exists {
+		t.Error("Expected test file to be created with post commands. Found no test file.")
+	}
+
+	fContent := readFile(fixedDir, fixedFile)
+	if fContent != "" {
+		t.Errorf("Expected empty test file to be created with post commands, got file content %s", fContent)
 	}
 }
 
@@ -422,6 +517,10 @@ func setup() string {
 // helper function to delete the temporary workspace.
 func teardown(dir string) {
 	os.RemoveAll(dir)
+	exists, _ := pathExists(fixedDir)
+	if exists {
+		os.RemoveAll(fixedDir)
+	}
 }
 
 // helper function to read a file in the temporary worskapce.

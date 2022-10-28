@@ -95,5 +95,5 @@ Ensure git-lfs is installed. For more details refer here: https://git-lfs.github
 To run all tests:
 
 ```
-go test
+go test -v
 ```
