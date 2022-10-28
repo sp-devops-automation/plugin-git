@@ -126,6 +126,11 @@ func main() {
 			Usage:   "Change branch name",
 			EnvVars: []string{"PLUGIN_BRANCH", "CI_COMMIT_BRANCH", "CI_REPO_DEFAULT_BRANCH"},
 		},
+		&cli.StringSliceFlag{
+			Name:    "post-commands",
+			Usage:   "comma seperated list of commands to run post completion of git instructions",
+			EnvVars: []string{"PLUGIN_POST_COMMANDS"},
+		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
@@ -183,6 +188,7 @@ func run(c *cli.Context) error {
 			Submodules:      c.Generic("submodule-override").(*MapFlag).Get(),
 			Lfs:             c.Bool("lfs"),
 			Branch:          c.String("branch"),
+			PostCommands:    c.StringSlice("post-commands"),
 		},
 		Backoff: Backoff{
 			Attempts: c.Int("backoff-attempts"),

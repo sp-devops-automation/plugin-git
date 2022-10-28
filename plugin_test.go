@@ -415,7 +415,7 @@ func TestUpdateSubmodulesRemote(t *testing.T) {
 // to which we can clone the repositroy
 func setup() string {
 	dir, _ := os.MkdirTemp("/tmp", "plugin_git_test_")
-	os.Mkdir(dir, 0o777)
+	os.Mkdir(dir, 0o777) //nolint: errcheck
 	return dir
 }
 

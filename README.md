@@ -13,8 +13,8 @@
   <a href="https://godoc.org/github.com/woodpecker-ci/plugin-git" title="GoDoc">
     <img src="https://godoc.org/github.com/woodpecker-ci/plugin-git?status.svg">
   </a>
-  <a href="https://hub.docker.com/r/woodpeckerci/plugin-git" title="Docker pulls">
-    <img src="https://img.shields.io/docker/pulls/woodpeckerci/plugin-git">
+  <a href="https://hub.docker.com/r/athenate/plugin-git" title="Docker pulls">
+    <img src="https://img.shields.io/docker/pulls/athenate/plugin-git">
   </a>
   <a href="https://opensource.org/licenses/Apache-2.0" title="License: Apache-2.0">
     <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg">
@@ -41,11 +41,13 @@ go build -v -a -tags netgo -o release/linux/amd64/plugin-git
 
 Build the Docker image with the following command:
 
+Ensure buildkit is enabled before the build - `export DOCKER_BUILDKIT=1`
+
 ```console
 docker build \
   --label org.label-schema.build-date=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
   --label org.label-schema.vcs-ref=$(git rev-parse --short HEAD) \
-  --file docker/Dockerfile.linux.amd64 --tag woodpeckerci/plugin-git .
+  --file docker/Dockerfile.multiarch --tag athenate/plugin-git .
 ```
 
 ## Usage
@@ -59,7 +61,7 @@ docker run --rm \
   -e CI_BUILD_EVENT=push \
   -e CI_COMMIT_SHA=d8dbe4d94f15fe89232e0402c6e8a0ddf21af3ab \
   -e CI_COMMIT_REF=refs/heads/master \
-  woodpeckerci/plugin-git
+  athenate/plugin-git
 ```
 
 Clone a pull request:
@@ -71,7 +73,7 @@ docker run --rm \
   -e CI_BUILD_EVENT=pull_request \
   -e CI_COMMIT_SHA=3b4642018d177bf5fecc5907e7f341a2b5c12b8a \
   -e CI_COMMIT_REF=refs/pull/74/head \
-  woodpeckerci/plugin-git
+  athenate/plugin-git
 ```
 
 Clone a tag:
@@ -83,5 +85,15 @@ docker run --rm \
   -e CI_BUILD_EVENT=tag \
   -e CI_COMMIT_SHA=3b4642018d177bf5fecc5907e7f341a2b5c12b8a \
   -e CI_COMMIT_REF=refs/tags/74/head \
-  woodpeckerci/plugin-git
+  athenate/plugin-git
+```
+
+## Tests
+
+Ensure git-lfs is installed. For more details refer here: https://git-lfs.github.com/
+
+To run all tests:
+
+```
+go test
 ```

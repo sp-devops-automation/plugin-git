@@ -83,6 +83,15 @@ func (p Plugin) Exec() error {
 			checkoutLFS())
 	}
 
+	// run post commands if specified.
+	if p.Config.PostCommands != nil {
+		for _, cmd := range p.Config.PostCommands {
+			if strings.Trim(cmd, " ") != "" {
+				cmds = append(cmds, postCommand(cmd))
+			}
+		}
+	}
+
 	for _, cmd := range cmds {
 		buf := new(bytes.Buffer)
 		cmd.Dir = p.Build.Path
@@ -314,4 +323,16 @@ func remapSubmodule(name, url string) *exec.Cmd {
 		name,
 		url,
 	), defaultEnvVars...)
+}
+
+// postCommand returns command to be executed post execution of git commands.
+func postCommand(command string) *exec.Cmd {
+		p := strings.Split(command, " ")
+		name := p[0]
+		args := []string{}
+		if len(p) > 1 {
+			args = p[1:]
+		}
+
+		return appendEnv(exec.Command(name, args...), defaultEnvVars...)
 }

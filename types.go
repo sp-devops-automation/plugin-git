@@ -34,6 +34,7 @@ type (
 		CustomCert      string
 		Lfs             bool
 		Branch          string
+		PostCommands    []string
 	}
 
 	Backoff struct {
